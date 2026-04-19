@@ -58,11 +58,20 @@ function err(
 async function authenticate(req: NextRequest): Promise<string | null> {
   // 1. Authorization header (Claude Code, curl, etc.)
   const auth = req.headers.get("authorization");
-  if (auth?.startsWith("Bearer ")) return resolveApiKey(auth.slice(7));
+  if (auth?.startsWith("Bearer ")) {
+    const resolved = await resolveApiKey(auth.slice(7));
+    console.log("[mcp] auth via header:", resolved ? "ok" : "FAILED (invalid token)");
+    return resolved;
+  }
   // 2. Query param — browser EventSource API can't send custom headers,
   //    so Claude.ai passes the token as ?access_token= on the SSE GET request
   const token = req.nextUrl.searchParams.get("access_token");
-  if (token) return resolveApiKey(token);
+  if (token) {
+    const resolved = await resolveApiKey(token);
+    console.log("[mcp] auth via query param:", resolved ? "ok" : "FAILED (invalid token)");
+    return resolved;
+  }
+  console.log("[mcp] auth: no token provided");
   return null;
 }
 
@@ -85,6 +94,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { id, method, params } = body;
+  console.log("[mcp] method:", method, "id:", id);
 
   if (method === "initialize") {
     // Echo back the client's requested protocol version (spec §negotiation).
