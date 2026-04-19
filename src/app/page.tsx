@@ -1,197 +1,307 @@
-export default function Home() {
-  return (
-    <div style={s.root}>
-      {/* ── Nav ───────────────────────────────────────────── */}
-      <nav style={s.nav}>
-        <span style={s.navLogo}>🖨️ 3dprintlog MCP</span>
-        <div style={s.navLinks}>
-          <a href="https://www.3dprintlog.com/api-keys" target="_blank" rel="noopener noreferrer" style={s.navLink}>
-            Get API Key
-          </a>
-          <a href="https://github.com/bustrama/3dprintlog-mcp" target="_blank" rel="noopener noreferrer" style={s.navLinkGhost}>
-            GitHub
-          </a>
-        </div>
-      </nav>
+"use client";
 
-      {/* ── Hero ──────────────────────────────────────────── */}
-      <section style={s.hero}>
-        <div style={s.badge}>Model Context Protocol</div>
-        <h1 style={s.heroTitle}>
-          Control your 3D prints<br />
-          <span style={s.heroAccent}>with plain English</span>
-        </h1>
-        <p style={s.heroSub}>
-          Connect Claude to your 3dprintlog account. Log prints, track filaments,
-          schedule maintenance — just by asking.
+import { useState } from "react";
+
+const ACCENT = "#4a9eff";
+
+export default function Home() {
+  const appUrl =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  const [copied, setCopied] = useState(false);
+
+  async function copyUrl() {
+    try {
+      await navigator.clipboard.writeText(appUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // clipboard blocked — ignore
+    }
+  }
+
+  return (
+    <main style={styles.main}>
+      <div style={styles.card}>
+        <div style={styles.header}>
+          <div style={styles.logoRow}>
+            <ClaudeMark />
+            <span style={styles.logoPlus}>+</span>
+            <PrintLogMark />
+          </div>
+          <h1 style={styles.title}>3dprintlog MCP</h1>
+          <p style={styles.subtitle}>Connect Claude to your 3dprintlog account.</p>
+        </div>
+
+        <ol style={styles.stepList}>
+          <li style={styles.step}>
+            <div style={styles.stepNum}>1</div>
+            <div style={styles.stepBody}>
+              <div style={styles.stepTitle}>Copy the server URL</div>
+              <div style={styles.urlRow}>
+                <code style={styles.urlCode}>{appUrl}</code>
+                <button type="button" onClick={copyUrl} style={styles.copyButton}>
+                  {copied ? "Copied ✓" : "Copy"}
+                </button>
+              </div>
+            </div>
+          </li>
+
+          <li style={styles.step}>
+            <div style={styles.stepNum}>2</div>
+            <div style={styles.stepBody}>
+              <div style={styles.stepTitle}>Add it in Claude</div>
+              <div style={styles.stepHint}>
+                Open Claude&apos;s Integrations → <strong>Add custom connector</strong> → paste the URL.
+              </div>
+              <a
+                href="https://claude.ai/settings/integrations"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={styles.primaryButton}
+              >
+                Add to Claude →
+              </a>
+            </div>
+          </li>
+
+          <li style={styles.step}>
+            <div style={styles.stepNum}>3</div>
+            <div style={styles.stepBody}>
+              <div style={styles.stepTitle}>Paste your API key</div>
+              <div style={styles.stepHint}>
+                Claude opens a pop-up. Grab your key from{" "}
+                <a
+                  href="https://www.3dprintlog.com/api-keys"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={styles.inlineLink}
+                >
+                  3dprintlog.com/api-keys
+                </a>
+                {" "}and paste it in.
+              </div>
+            </div>
+          </li>
+        </ol>
+
+        <div style={styles.features}>
+          <span style={styles.feature}>📋 Prints</span>
+          <span style={styles.feature}>🧵 Filament</span>
+          <span style={styles.feature}>🖨️ Printers</span>
+          <span style={styles.feature}>🔧 Maintenance</span>
+        </div>
+
+        <p style={styles.footer}>
+          Your API key never hits our servers — AES-256-GCM encrypted inside Claude&apos;s bearer
+          token. Rotate it any time to revoke access.
         </p>
-        <div style={s.heroCtas}>
-          <a
-            href="https://claude.ai/settings/integrations"
-            target="_blank"
-            rel="noopener noreferrer"
-            style={s.ctaPrimary}
-          >
-            Add to Claude.ai →
-          </a>
+
+        <div style={styles.creditsRow}>
           <a
             href="https://github.com/bustrama/3dprintlog-mcp"
             target="_blank"
             rel="noopener noreferrer"
-            style={s.ctaSecondary}
+            style={styles.creditsLink}
           >
-            View on GitHub
+            View on GitHub ↗
+          </a>
+          <a
+            href="https://linktr.ee/bustrama"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={styles.creditsLink}
+          >
+            Built by bustrama ↗
           </a>
         </div>
-        <p style={s.heroHint}>
-          Free · No account needed · Works with Claude.ai &amp; Claude Code
-        </p>
-      </section>
-
-      {/* ── Steps ─────────────────────────────────────────── */}
-      <section style={s.section}>
-        <h2 style={s.sectionTitle}>Up and running in 3 steps</h2>
-        <div style={s.steps}>
-          {[
-            { n: "1", title: "Open Claude.ai settings", body: "Go to Settings → Integrations → Add custom integration." },
-            { n: "2", title: "Paste the server URL", body: "Enter https://3dprintlog-mcp.vercel.app and click Connect." },
-            { n: "3", title: "Authorise with your API key", body: "A login page opens — paste your 3dprintlog API key and click Authorise." },
-          ].map((step) => (
-            <div key={step.n} style={s.step}>
-              <div style={s.stepNum}>{step.n}</div>
-              <div>
-                <div style={s.stepTitle}>{step.title}</div>
-                <div style={s.stepBody}>{step.body}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Features ──────────────────────────────────────── */}
-      <section style={{ ...s.section, background: "#0d0d0d" }}>
-        <h2 style={s.sectionTitle}>Everything in one place</h2>
-        <div style={s.grid}>
-          {features.map((f) => (
-            <div key={f.title} style={s.card}>
-              <div style={s.cardIcon}>{f.icon}</div>
-              <div style={s.cardTitle}>{f.title}</div>
-              <div style={s.cardBody}>{f.body}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Prompts ───────────────────────────────────────── */}
-      <section style={s.section}>
-        <h2 style={s.sectionTitle}>Ask Claude anything about your prints</h2>
-        <div style={s.prompts}>
-          {prompts.map((p) => (
-            <div key={p} style={s.prompt}>
-              <span style={s.promptQuote}>"</span>{p}<span style={s.promptQuote}>"</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Security callout ──────────────────────────────── */}
-      <section style={{ ...s.section, background: "#0d0d0d" }}>
-        <div style={s.securityBox}>
-          <div style={s.securityIcon}>🔒</div>
-          <div>
-            <div style={s.securityTitle}>Your API key never touches our servers</div>
-            <div style={s.securityBody}>
-              It's encrypted with AES-256 and packed inside a signed token that only Claude holds.
-              Rotate your 3dprintlog API key at any time to immediately revoke access.
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Footer ────────────────────────────────────────── */}
-      <footer style={s.footer}>
-        <span style={s.footerLogo}>🖨️ 3dprintlog MCP</span>
-        <div style={s.footerLinks}>
-          <a href="https://www.3dprintlog.com" target="_blank" rel="noopener noreferrer" style={s.footerLink}>3dprintlog.com</a>
-          <a href="https://www.3dprintlog.com/api-keys" target="_blank" rel="noopener noreferrer" style={s.footerLink}>Get API Key</a>
-          <a href="https://github.com/bustrama/3dprintlog-mcp" target="_blank" rel="noopener noreferrer" style={s.footerLink}>GitHub</a>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </main>
   );
 }
 
-const features = [
-  { icon: "📋", title: "Print logging", body: "Log new prints, track success/failure, record time and material used." },
-  { icon: "🧵", title: "Filament inventory", body: "See what's left on every spool. Add new filaments, update weights after a print." },
-  { icon: "🖨️", title: "Printer management", body: "List all your printers, add new ones, track which printer ran which job." },
-  { icon: "🔧", title: "Maintenance tracking", body: "Log nozzle changes, bed levelling, lubrication. Never forget a service task." },
-  { icon: "🔔", title: "Notifications", body: "Check unread notifications and mark them read without leaving your chat." },
-  { icon: "📊", title: "Activity feed", body: "Get a summary of recent activity across all your printers and filaments." },
-];
+function ClaudeMark() {
+  return (
+    <span style={styles.mark} aria-label="Claude" title="Claude">
+      <svg width="20" height="20" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path
+          fill="#D97757"
+          d="m19.6 66.5 19.7-11 .3-1-.3-.5h-1l-3.3-.2-11.2-.3L14 53l-9.5-.5-2.4-.5L0 49l.2-1.5 2-1.3 2.9.2 6.3.5 9.5.6 6.9.4L38 49.1h1.6l.2-.7-.5-.4-.4-.4L29 41l-10.6-7-5.6-4.1-3-2-1.5-2-.6-4.2 2.7-3 3.7.3.9.2 3.7 2.9 8 6.1L37 36l1.5 1.2.6-.4.1-.3-.7-1.1L33 25l-6-10.4-2.7-4.3-.7-2.6c-.3-1-.4-2-.4-3l3-4.2L28 0l4.2.6L33.8 2l2.6 6 4.1 9.3L47 29.9l2 3.8 1 3.4.3 1h.7v-.5l.5-7.2 1-8.7 1-11.2.3-3.2 1.6-3.8 3-2L61 2.6l2 2.9-.3 1.8-1.1 7.7L59 27.1l-1.5 8.2h.9l1-1.1 4.1-5.4 6.9-8.6 3-3.5L77 13l2.3-1.8h4.3l3.1 4.7-1.4 4.9-4.4 5.6-3.7 4.7-5.3 7.1-3.2 5.7.3.4h.7l12-2.6 6.4-1.1 7.6-1.3 3.5 1.6.4 1.6-1.4 3.4-8.2 2-9.6 2-14.3 3.3-.2.1.2.3 6.4.6 2.8.2h6.8l12.6 1 3.3 2 1.9 2.7-.3 2-5.1 2.6-6.8-1.6-16-3.8-5.4-1.3h-.8v.4l4.6 4.5 8.3 7.5L89 80.1l.5 2.4-1.3 2-1.4-.2-9.2-7-3.6-3-8-6.8h-.5v.7l1.8 2.7 9.8 14.7.5 4.5-.7 1.4-2.6 1-2.7-.6-5.8-8-6-9-4.7-8.2-.5.4-2.9 30.2-1.3 1.5-3 1.2-2.5-2-1.4-3 1.4-6.2 1.6-8 1.3-6.4 1.2-7.9.7-2.6v-.2H49L43 72l-9 12.3-7.2 7.6-1.7.7-3-1.5.3-2.8L24 86l10-12.8 6-7.9 4-4.6-.1-.5h-.3L17.2 77.4l-4.7.6-2-2 .2-3 1-1 8-5.5Z"
+        />
+      </svg>
+    </span>
+  );
+}
 
-const prompts = [
-  "Log a Benchy print — 2h 15m, 18g of eSUN PLA+ Black, success",
-  "How much filament do I have left in total?",
-  "When did I last do maintenance on my Bambu X1C?",
-  "Show me all prints that failed this month",
-  "Add a new spool — Polymaker PLA Muted White 1kg",
-  "What have I been printing lately?",
-];
+function PrintLogMark() {
+  return (
+    <span style={{ ...styles.mark, background: ACCENT }} aria-label="3dprintlog" title="3dprintlog">
+      <svg width="22" height="22" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M42 20 H58 L58 32 L62 32 L50 44 L38 32 L42 32 Z" fill="#ffffff" />
+        <rect x="28" y="52" width="44" height="6" rx="2" fill="#ffffff" />
+        <rect x="26" y="62" width="48" height="6" rx="2" fill="#ffffff" opacity="0.85" />
+        <rect x="24" y="72" width="52" height="6" rx="2" fill="#ffffff" opacity="0.7" />
+      </svg>
+    </span>
+  );
+}
 
-const s: Record<string, React.CSSProperties> = {
-  root: { background: "#0a0a0a", color: "#f0f0f0", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", minHeight: "100vh" },
-
-  // nav
-  nav: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 48px", borderBottom: "1px solid #1a1a1a", position: "sticky", top: 0, background: "#0a0a0aee", backdropFilter: "blur(8px)", zIndex: 10 },
-  navLogo: { fontWeight: 700, fontSize: "15px", letterSpacing: "-0.3px" },
-  navLinks: { display: "flex", gap: "8px", alignItems: "center" },
-  navLink: { color: "#f0f0f0", textDecoration: "none", fontSize: "13px", fontWeight: 500, padding: "7px 14px", background: "#4a9eff", borderRadius: "7px" },
-  navLinkGhost: { color: "#888", textDecoration: "none", fontSize: "13px", padding: "7px 14px", border: "1px solid #2a2a2a", borderRadius: "7px" },
-
-  // hero
-  hero: { textAlign: "center", padding: "100px 24px 80px", maxWidth: "720px", margin: "0 auto" },
-  badge: { display: "inline-block", fontSize: "11px", fontWeight: 600, letterSpacing: "1px", textTransform: "uppercase", color: "#4a9eff", border: "1px solid #1a3a5c", background: "#0d1f33", padding: "5px 12px", borderRadius: "20px", marginBottom: "28px" },
-  heroTitle: { fontSize: "clamp(36px, 6vw, 60px)", fontWeight: 800, lineHeight: 1.1, margin: "0 0 20px", letterSpacing: "-1.5px" },
-  heroAccent: { color: "#4a9eff" },
-  heroSub: { fontSize: "18px", color: "#888", lineHeight: 1.7, margin: "0 0 40px", maxWidth: "520px", marginLeft: "auto", marginRight: "auto" },
-  heroCtas: { display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" },
-  ctaPrimary: { display: "inline-block", padding: "14px 28px", background: "#4a9eff", color: "#fff", borderRadius: "10px", textDecoration: "none", fontWeight: 700, fontSize: "15px" },
-  ctaSecondary: { display: "inline-block", padding: "14px 28px", background: "transparent", color: "#f0f0f0", border: "1px solid #2a2a2a", borderRadius: "10px", textDecoration: "none", fontWeight: 600, fontSize: "15px" },
-  heroHint: { fontSize: "12px", color: "#444", marginTop: "20px" },
-
-  // sections
-  section: { padding: "80px 24px", maxWidth: "900px", margin: "0 auto" },
-  sectionTitle: { fontSize: "28px", fontWeight: 700, textAlign: "center", margin: "0 0 48px", letterSpacing: "-0.5px" },
-
-  // steps
-  steps: { display: "flex", flexDirection: "column", gap: "16px", maxWidth: "560px", margin: "0 auto" },
-  step: { display: "flex", gap: "20px", alignItems: "flex-start", background: "#111", border: "1px solid #1e1e1e", borderRadius: "12px", padding: "20px 24px" },
-  stepNum: { width: "32px", height: "32px", minWidth: "32px", background: "#4a9eff", color: "#fff", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: "14px" },
-  stepTitle: { fontWeight: 600, fontSize: "15px", marginBottom: "4px" },
-  stepBody: { fontSize: "13px", color: "#777", lineHeight: 1.6 },
-
-  // features grid
-  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" },
-  card: { background: "#111", border: "1px solid #1e1e1e", borderRadius: "12px", padding: "24px" },
-  cardIcon: { fontSize: "28px", marginBottom: "12px" },
-  cardTitle: { fontWeight: 700, fontSize: "15px", marginBottom: "8px" },
-  cardBody: { fontSize: "13px", color: "#666", lineHeight: 1.6 },
-
-  // prompts
-  prompts: { display: "flex", flexDirection: "column", gap: "10px", maxWidth: "620px", margin: "0 auto" },
-  prompt: { background: "#111", border: "1px solid #1e1e1e", borderRadius: "10px", padding: "14px 18px", fontSize: "14px", color: "#ccc", lineHeight: 1.5 },
-  promptQuote: { color: "#4a9eff", fontWeight: 700 },
-
-  // security
-  securityBox: { display: "flex", gap: "20px", alignItems: "flex-start", background: "#0d1f33", border: "1px solid #1a3a5c", borderRadius: "14px", padding: "28px 32px", maxWidth: "620px", margin: "0 auto" },
-  securityIcon: { fontSize: "28px", minWidth: "28px" },
-  securityTitle: { fontWeight: 700, fontSize: "15px", marginBottom: "8px" },
-  securityBody: { fontSize: "13px", color: "#7aabdd", lineHeight: 1.7 },
-
-  // footer
-  footer: { display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px", padding: "28px 48px", borderTop: "1px solid #1a1a1a", marginTop: "40px" },
-  footerLogo: { fontSize: "14px", fontWeight: 600, color: "#444" },
-  footerLinks: { display: "flex", gap: "20px" },
-  footerLink: { fontSize: "13px", color: "#555", textDecoration: "none" },
+const styles: Record<string, React.CSSProperties> = {
+  main: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "16px",
+    background: "#0a0a0a",
+    color: "#f0f0f0",
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  },
+  card: {
+    background: "#1a1a1a",
+    border: "1px solid #2a2a2a",
+    borderRadius: "14px",
+    padding: "24px",
+    maxWidth: "480px",
+    width: "100%",
+  },
+  header: { textAlign: "center", marginBottom: "20px" },
+  logoRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    marginBottom: "12px",
+  },
+  mark: {
+    width: "36px",
+    height: "36px",
+    borderRadius: "10px",
+    background: "#0f0f0f",
+    border: "1px solid #2a2a2a",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  logoPlus: { color: "#555", fontSize: "16px", fontWeight: 400 },
+  title: { fontSize: "20px", fontWeight: 700, margin: "0 0 4px" },
+  subtitle: { color: "#888", fontSize: "13px", lineHeight: 1.4, margin: 0 },
+  stepList: {
+    listStyle: "none",
+    padding: 0,
+    margin: "0 0 16px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  },
+  step: {
+    display: "flex",
+    gap: "12px",
+    padding: "12px 14px",
+    background: "#0f0f0f",
+    border: "1px solid #222",
+    borderRadius: "10px",
+  },
+  stepNum: {
+    flexShrink: 0,
+    width: "22px",
+    height: "22px",
+    borderRadius: "50%",
+    background: ACCENT,
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "12px",
+    fontWeight: 700,
+    marginTop: "1px",
+  },
+  stepBody: { flex: 1, minWidth: 0 },
+  stepTitle: {
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "#f0f0f0",
+    marginBottom: "6px",
+  },
+  stepHint: {
+    fontSize: "12px",
+    color: "#888",
+    lineHeight: 1.45,
+    marginBottom: "8px",
+  },
+  inlineLink: { color: ACCENT, textDecoration: "none" },
+  urlRow: { display: "flex", gap: "6px", alignItems: "stretch" },
+  urlCode: {
+    flex: 1,
+    minWidth: 0,
+    background: "#050505",
+    border: "1px solid #2a2a2a",
+    borderRadius: "6px",
+    padding: "6px 9px",
+    fontSize: "11px",
+    color: ACCENT,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  copyButton: {
+    padding: "0 12px",
+    background: "#2a2a2a",
+    color: "#f0f0f0",
+    border: "1px solid #333",
+    borderRadius: "6px",
+    fontSize: "11px",
+    fontWeight: 600,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+  primaryButton: {
+    display: "inline-block",
+    padding: "7px 14px",
+    background: ACCENT,
+    color: "#fff",
+    border: "none",
+    borderRadius: "7px",
+    fontSize: "12px",
+    fontWeight: 600,
+    textDecoration: "none",
+  },
+  features: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "6px",
+    marginBottom: "14px",
+    justifyContent: "center",
+  },
+  feature: {
+    background: "#0f0f0f",
+    border: "1px solid #222",
+    borderRadius: "999px",
+    padding: "4px 10px",
+    fontSize: "11px",
+    color: "#888",
+  },
+  footer: {
+    fontSize: "10.5px",
+    color: "#555",
+    lineHeight: 1.5,
+    textAlign: "center",
+    margin: 0,
+  },
+  creditsRow: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "18px",
+    marginTop: "14px",
+    paddingTop: "12px",
+    borderTop: "1px solid #222",
+  },
+  creditsLink: {
+    fontSize: "11px",
+    color: "#888",
+    textDecoration: "none",
+    fontWeight: 500,
+  },
 };

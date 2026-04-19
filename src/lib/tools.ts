@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { PrintLogClient } from "@/lib/printlog";
 
 export type ToolDefinition = {
@@ -332,6 +333,32 @@ export const TOOLS: ToolDefinition[] = [
 
 type ToolInput = Record<string, unknown>;
 
+const IntId = z.object({ id: z.number().int().positive() });
+const StrId = z.object({ id: z.string().min(1).max(128) });
+const IntIdWithData = IntId.extend({ data: z.record(z.unknown()) });
+const StrIdWithData = StrId.extend({ data: z.record(z.unknown()) });
+const DataOnly = z.object({ data: z.record(z.unknown()) });
+
+const PageOnly = z.object({
+  page: z.number().int().positive().max(10_000).optional(),
+  pageSize: z.number().int().positive().max(200).optional(),
+});
+const PageWithSearch = PageOnly.extend({
+  search: z.string().max(256).optional(),
+});
+const ListPrintsInput = PageWithSearch.extend({
+  onlySuccessful: z.boolean().optional(),
+  onlyFailed: z.boolean().optional(),
+});
+
+function parse<T>(schema: z.ZodType<T>, input: ToolInput): T {
+  const result = schema.safeParse(input);
+  if (!result.success) {
+    throw new Error(`Invalid tool input: ${result.error.issues.map((i) => i.message).join("; ")}`);
+  }
+  return result.data;
+}
+
 export async function callTool(
   name: string,
   input: ToolInput,
@@ -339,39 +366,47 @@ export async function callTool(
 ): Promise<unknown> {
   switch (name) {
     // Prints
-    case "list_prints":
+    case "list_prints": {
+      const a = parse(ListPrintsInput, input);
       return client.listPrints({
-        PageNumber: input.page as number | undefined,
-        PageSize: input.pageSize as number | undefined,
-        searchText: input.search as string | undefined,
-        showOnlySuccessful: input.onlySuccessful as boolean | undefined,
-        showOnlyFailed: input.onlyFailed as boolean | undefined,
+        PageNumber: a.page,
+        PageSize: a.pageSize,
+        searchText: a.search,
+        showOnlySuccessful: a.onlySuccessful,
+        showOnlyFailed: a.onlyFailed,
       });
+    }
     case "get_print":
-      return client.getPrint(input.id as number);
+      return client.getPrint(parse(IntId, input).id);
     case "create_print":
-      return client.createPrint(input.data);
-    case "update_print":
-      return client.updatePrint(input.id as number, input.data);
+      return client.createPrint(parse(DataOnly, input).data);
+    case "update_print": {
+      const a = parse(IntIdWithData, input);
+      return client.updatePrint(a.id, a.data);
+    }
     case "delete_print":
-      await client.deletePrint(input.id as number);
+      await client.deletePrint(parse(IntId, input).id);
       return { success: true };
 
     // Filaments
-    case "list_filaments":
+    case "list_filaments": {
+      const a = parse(PageWithSearch, input);
       return client.listFilaments({
-        PageNumber: input.page as number | undefined,
-        PageSize: input.pageSize as number | undefined,
-        searchText: input.search as string | undefined,
+        PageNumber: a.page,
+        PageSize: a.pageSize,
+        searchText: a.search,
       });
+    }
     case "get_filament":
-      return client.getFilament(input.id as string);
+      return client.getFilament(parse(StrId, input).id);
     case "create_filament":
-      return client.createFilament(input.data);
-    case "update_filament":
-      return client.updateFilament(input.id as string, input.data);
+      return client.createFilament(parse(DataOnly, input).data);
+    case "update_filament": {
+      const a = parse(StrIdWithData, input);
+      return client.updateFilament(a.id, a.data);
+    }
     case "delete_filament":
-      await client.deleteFilament(input.id as string);
+      await client.deleteFilament(parse(StrId, input).id);
       return { success: true };
     case "get_filament_brands":
       return client.getFilamentBrands();
@@ -379,49 +414,50 @@ export async function callTool(
       return client.getFilamentStorageLocations();
 
     // Printers
-    case "list_printers":
-      return client.listPrinters({
-        PageNumber: input.page as number | undefined,
-        PageSize: input.pageSize as number | undefined,
-      });
+    case "list_printers": {
+      const a = parse(PageOnly, input);
+      return client.listPrinters({ PageNumber: a.page, PageSize: a.pageSize });
+    }
     case "get_printer":
-      return client.getPrinter(input.id as number);
+      return client.getPrinter(parse(IntId, input).id);
     case "create_printer":
-      return client.createPrinter(input.data);
-    case "update_printer":
-      return client.updatePrinter(input.id as number, input.data);
+      return client.createPrinter(parse(DataOnly, input).data);
+    case "update_printer": {
+      const a = parse(IntIdWithData, input);
+      return client.updatePrinter(a.id, a.data);
+    }
     case "delete_printer":
-      await client.deletePrinter(input.id as number);
+      await client.deletePrinter(parse(IntId, input).id);
       return { success: true };
     case "get_printer_filament":
-      return client.getPrinterFilament(input.id as number);
+      return client.getPrinterFilament(parse(IntId, input).id);
     case "unload_printer_filament":
-      return client.unloadPrinterFilament(input.id as number);
+      return client.unloadPrinterFilament(parse(IntId, input).id);
 
     // Maintenance
-    case "list_maintenance":
-      return client.listMaintenance({
-        PageNumber: input.page as number | undefined,
-        PageSize: input.pageSize as number | undefined,
-      });
+    case "list_maintenance": {
+      const a = parse(PageOnly, input);
+      return client.listMaintenance({ PageNumber: a.page, PageSize: a.pageSize });
+    }
     case "get_maintenance":
-      return client.getMaintenance(input.id as number);
+      return client.getMaintenance(parse(IntId, input).id);
     case "create_maintenance":
-      return client.createMaintenance(input.data);
-    case "update_maintenance":
-      return client.updateMaintenance(input.id as number, input.data);
+      return client.createMaintenance(parse(DataOnly, input).data);
+    case "update_maintenance": {
+      const a = parse(IntIdWithData, input);
+      return client.updateMaintenance(a.id, a.data);
+    }
     case "delete_maintenance":
-      await client.deleteMaintenance(input.id as number);
+      await client.deleteMaintenance(parse(IntId, input).id);
       return { success: true };
     case "get_maintenance_categories":
       return client.getMaintenanceCategories();
 
     // Notifications
-    case "list_notifications":
-      return client.listNotifications({
-        PageNumber: input.page as number | undefined,
-        PageSize: input.pageSize as number | undefined,
-      });
+    case "list_notifications": {
+      const a = parse(PageOnly, input);
+      return client.listNotifications({ PageNumber: a.page, PageSize: a.pageSize });
+    }
     case "get_unread_notification_count":
       return client.getUnreadNotificationCount();
     case "mark_all_notifications_read":

@@ -3,14 +3,30 @@ import { randomBytes } from "crypto";
 
 export const runtime = "nodejs";
 
-// Dynamic Client Registration — RFC 7591
-// Claude registers itself here before starting the authorization flow.
-// We don't need to persist clients since our auth codes are self-contained JWTs.
+// Dynamic Client Registration — RFC 7591.
+// We return a fresh client_id but do not persist registrations; the
+// redirect_uri allowlist is enforced statically at the authorize endpoint.
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization",
 };
+
+function isAcceptableRedirectUri(uri: string): boolean {
+  try {
+    const u = new URL(uri);
+    if (u.protocol === "https:") return true;
+    if (
+      u.protocol === "http:" &&
+      (u.hostname === "localhost" || u.hostname === "127.0.0.1" || u.hostname === "[::1]")
+    ) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(req: NextRequest) {
   let body: Record<string, unknown> = {};
@@ -20,21 +36,19 @@ export async function POST(req: NextRequest) {
     // body is optional per RFC 7591
   }
 
-  const redirectUris: string[] = Array.isArray(body.redirect_uris)
-    ? (body.redirect_uris as string[])
+  const rawUris: unknown = body.redirect_uris;
+  const redirectUris: string[] = Array.isArray(rawUris)
+    ? rawUris.filter((u): u is string => typeof u === "string" && isAcceptableRedirectUri(u))
     : [];
-
-  console.log("[register] client registration — redirect_uris:", redirectUris, "ua:", req.headers.get("user-agent"));
 
   const clientId = randomBytes(16).toString("hex");
 
-  // RFC 7591 §3.2.1 — echo back all registered client metadata so the
-  // client can verify its redirect_uris were accepted.
+  // RFC 7591 §3.2.1 — echo back only the URIs we'd accept at authorize time.
   return NextResponse.json(
     {
       client_id: clientId,
       client_id_issued_at: Math.floor(Date.now() / 1000),
-      client_name: body.client_name ?? "mcp-client",
+      client_name: typeof body.client_name === "string" ? body.client_name : "mcp-client",
       redirect_uris: redirectUris,
       grant_types: ["authorization_code"],
       response_types: ["code"],

@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { appUrl } from "@/lib/app-url";
 
 export const runtime = "nodejs";
 
 // RFC 9728 — OAuth 2.0 Protected Resource Metadata
 // Claude.ai checks this endpoint to discover how to authenticate with this resource.
 export async function GET() {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const base = appUrl();
 
   return NextResponse.json(
     {

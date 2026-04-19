@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { PrintLogClient } from "@/lib/printlog";
 import { createAuthCode } from "@/lib/session";
+import { isRedirectUriAllowed } from "@/lib/redirect-allowlist";
 
 export const runtime = "nodejs";
 
@@ -10,7 +11,7 @@ const Body = z.object({
   clientId: z.string(),
   redirectUri: z.string().url(),
   state: z.string(),
-  codeChallenge: z.string().min(1),
+  codeChallenge: z.string().min(43).max(128),
   codeChallengeMethod: z.string().default("S256"),
 });
 
@@ -29,18 +30,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Validate redirect_uri against the static allowlist. This blocks
+  // code-exfiltration attacks where an attacker crafts an authorize link
+  // pointing at a host they control.
+  if (!isRedirectUriAllowed(parsed.redirectUri)) {
+    return NextResponse.json(
+      { error: "redirect_uri is not registered for this client" },
+      { status: 400 }
+    );
+  }
+
   // Validate the API key against 3dprintlog
-  console.log("[authorize] validating API key for client_id:", parsed.clientId);
   const client = new PrintLogClient(parsed.apiKey);
   const valid = await client.validate();
   if (!valid) {
-    console.log("[authorize] API key validation FAILED");
     return NextResponse.json(
       { error: "Invalid API key — could not authenticate with 3dprintlog." },
       { status: 401 }
     );
   }
-  console.log("[authorize] API key valid — issuing auth code");
 
   // Issue a self-contained auth code (5 min TTL, contains PKCE challenge)
   const code = await createAuthCode({
@@ -50,7 +58,6 @@ export async function POST(req: NextRequest) {
     clientId: parsed.clientId,
   });
 
-  // Build the redirect URL back to Claude
   const redirectUrl = new URL(parsed.redirectUri);
   redirectUrl.searchParams.set("code", code);
   if (parsed.state) redirectUrl.searchParams.set("state", parsed.state);

@@ -31,8 +31,10 @@ export class PrintLogClient {
     });
 
     if (!res.ok) {
-      const text = await res.text().catch(() => res.statusText);
-      throw new Error(`${method} ${path} → ${res.status}: ${text}`);
+      // Drain the body so the connection can be reused, but don't echo it
+      // back — upstream error payloads can contain headers or tokens.
+      await res.text().catch(() => undefined);
+      throw new Error(`${method} ${path} → ${res.status} ${res.statusText}`);
     }
 
     if (res.status === 204) return undefined as T;

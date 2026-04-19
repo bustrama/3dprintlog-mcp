@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveApiKey } from "@/lib/session";
 import { PrintLogClient } from "@/lib/printlog";
 import { TOOLS, callTool } from "@/lib/tools";
+import { appUrl } from "@/lib/app-url";
 
 export const runtime = "nodejs";
 
@@ -19,11 +20,11 @@ const CORS = {
 // WWW-Authenticate header variants (RFC 6750 §3.1 + RFC 9728 §5):
 // resource_metadata tells the client where to find the OAuth server — required by MCP auth spec.
 const WWW_AUTH_MISSING = () => {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const base = appUrl();
   return `Bearer realm="${base}", resource_metadata="${base}/.well-known/oauth-protected-resource"`;
 };
 const WWW_AUTH_INVALID = () => {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const base = appUrl();
   return `Bearer realm="${base}", error="invalid_token", resource_metadata="${base}/.well-known/oauth-protected-resource"`;
 };
 
@@ -64,16 +65,10 @@ function err(
 }
 
 async function authenticate(req: NextRequest): Promise<{ apiKey: string | null; hadToken: boolean }> {
-  // Log all auth-related headers for debugging
-  const allHeaders: Record<string, string> = {};
-  req.headers.forEach((v, k) => { allHeaders[k] = v; });
-  console.log("[mcp] incoming headers:", JSON.stringify(allHeaders));
-
   // 1. Authorization header (Claude Code, curl, etc.)
   const auth = req.headers.get("authorization");
   if (auth?.startsWith("Bearer ")) {
     const apiKey = await resolveApiKey(auth.slice(7));
-    console.log("[mcp] auth via header:", apiKey ? "ok" : "FAILED (invalid token)");
     return { apiKey, hadToken: true };
   }
   // 2. Query param — browser EventSource API can't send custom headers,
@@ -81,10 +76,8 @@ async function authenticate(req: NextRequest): Promise<{ apiKey: string | null; 
   const token = req.nextUrl.searchParams.get("access_token");
   if (token) {
     const apiKey = await resolveApiKey(token);
-    console.log("[mcp] auth via query param:", apiKey ? "ok" : "FAILED (invalid token)");
     return { apiKey, hadToken: true };
   }
-  console.log("[mcp] auth: no token provided");
   return { apiKey: null, hadToken: false };
 }
 
@@ -108,7 +101,6 @@ export async function POST(req: NextRequest) {
   }
 
   const { id, method, params } = body;
-  console.log("[mcp] method:", method, "id:", id);
 
   if (method === "initialize") {
     // Echo back the client's requested protocol version (spec §negotiation).
@@ -182,12 +174,12 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const base = appUrl();
   // If token came via query param, embed it in the POST endpoint URL too
   const qToken = req.nextUrl.searchParams.get("access_token");
   const postUrl = qToken
-    ? `${appUrl}/api/mcp?access_token=${encodeURIComponent(qToken)}`
-    : `${appUrl}/api/mcp`;
+    ? `${base}/api/mcp?access_token=${encodeURIComponent(qToken)}`
+    : `${base}/api/mcp`;
   const enc = new TextEncoder();
 
   let keepAlive: ReturnType<typeof setInterval>;

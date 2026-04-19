@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { exchangeAuthCode } from "@/lib/session";
+import { exchangeAuthCode, ACCESS_TOKEN_TTL_SECONDS } from "@/lib/session";
 
 export const runtime = "nodejs";
 
@@ -44,28 +44,24 @@ export async function POST(req: NextRequest) {
   if (!code) return errorResponse("invalid_request", "Missing code");
   if (!redirect_uri) return errorResponse("invalid_request", "Missing redirect_uri");
   if (!code_verifier) return errorResponse("invalid_request", "Missing code_verifier");
-
-  console.log("[token] exchange attempt — redirect_uri:", redirect_uri, "client_id:", client_id);
+  if (!client_id) return errorResponse("invalid_request", "Missing client_id");
 
   const accessToken = await exchangeAuthCode({
     code,
     codeVerifier: code_verifier,
     redirectUri: redirect_uri,
-    clientId: client_id ?? "",
+    clientId: client_id,
   });
 
   if (!accessToken) {
-    console.log("[token] exchange FAILED — invalid grant or PKCE mismatch");
     return errorResponse("invalid_grant", "Auth code is invalid, expired, or PKCE failed", 400);
   }
-
-  console.log("[token] exchange OK — token issued");
 
   return NextResponse.json(
     {
       access_token: accessToken,
       token_type: "Bearer",
-      expires_in: 31_536_000, // 1 year
+      expires_in: ACCESS_TOKEN_TTL_SECONDS,
     },
     { headers: { ...CORS, "Cache-Control": "no-store" } }
   );

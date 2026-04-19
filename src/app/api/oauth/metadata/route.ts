@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
+import { appUrl } from "@/lib/app-url";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  const base = appUrl();
 
   return NextResponse.json(
     {
