@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "3D Print Log MCP",
-  description: "Connect Claude to your 3dprintlog account",
+  title: "3dprintlog MCP — Control your 3D prints with Claude",
+  description: "Connect Claude to your 3dprintlog account. Log prints, track filaments, schedule maintenance — just by asking.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
