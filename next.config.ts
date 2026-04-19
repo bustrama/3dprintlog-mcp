@@ -11,9 +11,10 @@ const SECURITY_HEADERS = [
 // exfiltration channels.
 const AUTHORIZE_CSP =
   "default-src 'self'; " +
-  "script-src 'self'; " +
-  // Next.js inlines critical styles during SSR; 'unsafe-inline' is required for
-  // <style> but not for scripts.
+  // Next.js App Router emits inline hydration scripts; 'unsafe-inline' is
+  // required for the page to render. XSS risk is bounded because the page
+  // takes no user-controlled input that gets rendered into HTML.
+  "script-src 'self' 'unsafe-inline'; " +
   "style-src 'self' 'unsafe-inline'; " +
   "img-src 'self' data:; " +
   "connect-src 'self'; " +
