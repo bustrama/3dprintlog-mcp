@@ -30,14 +30,17 @@ export async function POST(req: NextRequest) {
   }
 
   // Validate the API key against 3dprintlog
+  console.log("[authorize] validating API key for client_id:", parsed.clientId);
   const client = new PrintLogClient(parsed.apiKey);
   const valid = await client.validate();
   if (!valid) {
+    console.log("[authorize] API key validation FAILED");
     return NextResponse.json(
       { error: "Invalid API key — could not authenticate with 3dprintlog." },
       { status: 401 }
     );
   }
+  console.log("[authorize] API key valid — issuing auth code");
 
   // Issue a self-contained auth code (5 min TTL, contains PKCE challenge)
   const code = await createAuthCode({

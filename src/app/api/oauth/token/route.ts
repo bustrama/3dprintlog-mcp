@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
   if (!redirect_uri) return errorResponse("invalid_request", "Missing redirect_uri");
   if (!code_verifier) return errorResponse("invalid_request", "Missing code_verifier");
 
+  console.log("[token] exchange attempt — redirect_uri:", redirect_uri, "client_id:", client_id);
+
   const accessToken = await exchangeAuthCode({
     code,
     codeVerifier: code_verifier,
@@ -53,8 +55,11 @@ export async function POST(req: NextRequest) {
   });
 
   if (!accessToken) {
+    console.log("[token] exchange FAILED — invalid grant or PKCE mismatch");
     return errorResponse("invalid_grant", "Auth code is invalid, expired, or PKCE failed", 400);
   }
+
+  console.log("[token] exchange OK — token issued");
 
   return NextResponse.json(
     {
