@@ -16,8 +16,13 @@ const CORS = {
   "Access-Control-Expose-Headers": "Mcp-Session-Id",
 };
 
-// WWW-Authenticate tells Claude.ai where to find the OAuth2 server
-const WWW_AUTH = `Bearer realm="${process.env.NEXT_PUBLIC_APP_URL}", error="invalid_token"`;
+// WWW-Authenticate header variants:
+// - No token provided → just realm (RFC 6750 §3.1)
+// - Token provided but invalid → realm + error="invalid_token"
+const WWW_AUTH_MISSING = () =>
+  `Bearer realm="${process.env.NEXT_PUBLIC_APP_URL}"`;
+const WWW_AUTH_INVALID = () =>
+  `Bearer realm="${process.env.NEXT_PUBLIC_APP_URL}", error="invalid_token"`;
 
 type JsonRpcRequest = {
   jsonrpc: "2.0";
@@ -55,34 +60,40 @@ function err(
   );
 }
 
-async function authenticate(req: NextRequest): Promise<string | null> {
+async function authenticate(req: NextRequest): Promise<{ apiKey: string | null; hadToken: boolean }> {
+  // Log all auth-related headers for debugging
+  const allHeaders: Record<string, string> = {};
+  req.headers.forEach((v, k) => { allHeaders[k] = v; });
+  console.log("[mcp] incoming headers:", JSON.stringify(allHeaders));
+
   // 1. Authorization header (Claude Code, curl, etc.)
   const auth = req.headers.get("authorization");
   if (auth?.startsWith("Bearer ")) {
-    const resolved = await resolveApiKey(auth.slice(7));
-    console.log("[mcp] auth via header:", resolved ? "ok" : "FAILED (invalid token)");
-    return resolved;
+    const apiKey = await resolveApiKey(auth.slice(7));
+    console.log("[mcp] auth via header:", apiKey ? "ok" : "FAILED (invalid token)");
+    return { apiKey, hadToken: true };
   }
   // 2. Query param — browser EventSource API can't send custom headers,
   //    so Claude.ai passes the token as ?access_token= on the SSE GET request
   const token = req.nextUrl.searchParams.get("access_token");
   if (token) {
-    const resolved = await resolveApiKey(token);
-    console.log("[mcp] auth via query param:", resolved ? "ok" : "FAILED (invalid token)");
-    return resolved;
+    const apiKey = await resolveApiKey(token);
+    console.log("[mcp] auth via query param:", apiKey ? "ok" : "FAILED (invalid token)");
+    return { apiKey, hadToken: true };
   }
   console.log("[mcp] auth: no token provided");
-  return null;
+  return { apiKey: null, hadToken: false };
 }
 
 // ── POST — JSON-RPC messages ──────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const apiKey = await authenticate(req);
+  const { apiKey, hadToken } = await authenticate(req);
   if (!apiKey) {
+    const wwwAuth = hadToken ? WWW_AUTH_INVALID() : WWW_AUTH_MISSING();
     return NextResponse.json(
       { jsonrpc: "2.0", id: null, error: { code: -32000, message: "Unauthorized" } },
-      { status: 401, headers: { ...CORS, "WWW-Authenticate": WWW_AUTH } }
+      { status: 401, headers: { ...CORS, "WWW-Authenticate": wwwAuth } }
     );
   }
 
@@ -159,11 +170,12 @@ export async function DELETE() {
 // ── GET — SSE stream (server-initiated messages / legacy SSE transport) ───────
 
 export async function GET(req: NextRequest) {
-  const apiKey = await authenticate(req);
+  const { apiKey, hadToken } = await authenticate(req);
   if (!apiKey) {
+    const wwwAuth = hadToken ? WWW_AUTH_INVALID() : WWW_AUTH_MISSING();
     return new NextResponse("Unauthorized", {
       status: 401,
-      headers: { ...CORS, "WWW-Authenticate": WWW_AUTH },
+      headers: { ...CORS, "WWW-Authenticate": wwwAuth },
     });
   }
 
