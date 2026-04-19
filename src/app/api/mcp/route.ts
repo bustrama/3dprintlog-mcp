@@ -16,13 +16,16 @@ const CORS = {
   "Access-Control-Expose-Headers": "Mcp-Session-Id",
 };
 
-// WWW-Authenticate header variants:
-// - No token provided → just realm (RFC 6750 §3.1)
-// - Token provided but invalid → realm + error="invalid_token"
-const WWW_AUTH_MISSING = () =>
-  `Bearer realm="${process.env.NEXT_PUBLIC_APP_URL}"`;
-const WWW_AUTH_INVALID = () =>
-  `Bearer realm="${process.env.NEXT_PUBLIC_APP_URL}", error="invalid_token"`;
+// WWW-Authenticate header variants (RFC 6750 §3.1 + RFC 9728 §5):
+// resource_metadata tells the client where to find the OAuth server — required by MCP auth spec.
+const WWW_AUTH_MISSING = () => {
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  return `Bearer realm="${base}", resource_metadata="${base}/.well-known/oauth-protected-resource"`;
+};
+const WWW_AUTH_INVALID = () => {
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
+  return `Bearer realm="${base}", error="invalid_token", resource_metadata="${base}/.well-known/oauth-protected-resource"`;
+};
 
 type JsonRpcRequest = {
   jsonrpc: "2.0";

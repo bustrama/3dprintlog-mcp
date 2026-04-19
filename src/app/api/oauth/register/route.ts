@@ -7,11 +7,13 @@ export const runtime = "nodejs";
 // Claude registers itself here before starting the authorization flow.
 // We don't need to persist clients since our auth codes are self-contained JWTs.
 export async function POST(req: NextRequest) {
+  let body: Record<string, unknown> = {};
   try {
-    await req.json(); // accept but don't require specific fields
+    body = await req.json();
   } catch {
     // body is optional
   }
+  console.log("[register] new client registration — redirect_uris:", body.redirect_uris, "ua:", req.headers.get("user-agent"));
 
   const clientId = randomBytes(16).toString("hex");
 
